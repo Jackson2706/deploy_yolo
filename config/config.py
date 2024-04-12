@@ -1,4 +1,4 @@
-YOLO_ONNX_MODEL_PATH = "weights/best.onnx"
+YOLO_ONNX_MODEL_PATH = "weights/quantized_yolov5.onnx"
 INPUT_SHAPE = (640, 640)
 COLOR_PADDING = (114,114,114)
 CONFIDENCE_THRESHOLD = 0.25

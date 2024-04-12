@@ -21,9 +21,10 @@ def main():
 
     for frame in camera.read_frame():
         outputs = yoloDetector.runInference(frame)
-        draw_image, class_name = yoloDetector.drawbox(frame, outputs)
+        draw_image = yoloDetector.drawbox(frame, outputs)
 
-        if class_name in ["drowsy", "drowsy#2"]:
+        if "drowsy" in [config.LABELS[det["class_id"]] for det in outputs]:
+            print(1)
             if start_time == 0:
                 start_time = time.time()
             else:
