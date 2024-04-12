@@ -14,3 +14,8 @@ LABELS = {
 
 
 CAMERA_URL = 0
+
+
+
+DATABASE_URL = "https://fir-mq3-default-rtdb.firebaseio.com"
+CERTIFICATE = "google-services.json"

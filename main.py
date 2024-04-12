@@ -1,34 +1,50 @@
 import cv2
-
-from config import config
+import threading
 from streaming.streaming import CameraFrameRecoder
 from model_deployment.yoloOnnxModel import YoloOnnxModel
+from firebase_manager import FirebaseManager
+import time
+from config import config
 
-# Khởi tạo CameraFrameRecoder và YoloOnnxModel từ các cấu hình trong config
+def main():
+    camera = CameraFrameRecoder(camera_url=config.CAMERA_URL)
+    yoloDetector = YoloOnnxModel(onnx_model_path=config.YOLO_ONNX_MODEL_PATH,
+                                 input_shape=config.INPUT_SHAPE,
+                                 color_padding=config.COLOR_PADDING,
+                                 confidence_threshold=config.CONFIDENCE_THRESHOLD,
+                                 nms_threshold=config.NMS_THRESHOLD,
+                                 label_list=config.LABELS)
+    firebase_manager = FirebaseManager(cred_path=config.CERTIFICATE,
+                                       database_url=config.DATABASE_URL)
+    start_time = 0
+    elapsed_time = 0
 
-camera = CameraFrameRecoder(camera_url=config.CAMERA_URL)
-yoloDetector = YoloOnnxModel(onnx_model_path=config.YOLO_ONNX_MODEL_PATH,
-                             input_shape=config.INPUT_SHAPE,
-                             color_padding=config.COLOR_PADDING,
-                             confidence_threshold=config.CONFIDENCE_THRESHOLD,
-                             nms_threshold=config.NMS_THRESHOLD,
-                             label_list=config.LABELS)
+    for frame in camera.read_frame():
+        outputs = yoloDetector.runInference(frame)
+        draw_image, class_name = yoloDetector.drawbox(frame, outputs)
 
-# Vòng lặp để xử lý từng frame từ camera và dự đoán bằng YOLOv5
+        if class_name in ["drowsy", "drowsy#2"]:
+            if start_time == 0:
+                start_time = time.time()
+            else:
+                elapsed_time = time.time() - start_time
+                if elapsed_time >= 2:
+                    start_time1 = elapsed_time
+                    firebase_thread = threading.Thread(target=firebase_manager.send_data_to_firebase,
+                                                       args=(start_time1,))
+                    firebase_thread.start()
+        else:
+            start_time = 0
+            elapsed_time = 0
+            firebase_thread1 = threading.Thread(target=firebase_manager.send_data_to_firebase1)
+            firebase_thread1.start()
 
-for frame in camera.read_frame():
-    # Thực hiện dự đoán trên frame hiện tại
-    outputs = yoloDetector.runInference(frame)
+        cv2.imshow("test", draw_image)
 
-    # Vẽ các bounding box và label lên frame
-    draw_image = yoloDetector.drawbox(frame, outputs)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
-    # Hiển thị frame với bounding box và label
-    cv2.imshow("test", draw_image)
+    camera.release()
 
-    # Nếu nhấn phím 'q', thoát khỏi vòng lặp
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-# Giải phóng tài nguyên của camera sau khi kết thúc
-camera.release()
+if __name__ == "__main__":
+    main()
