@@ -131,7 +131,7 @@ class YOLOv8Onnx:
         Returns:
             image_draw: Frame with bounding boxes and labels drawn.
         """
-        image_draw = frame
+        image_draw = cv2.resize(frame, (640, 640))
         for value in results:
             x, y, x_max, y_max = value["box"]
             class_name = self.names[value["class_id"]]
